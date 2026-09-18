@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GramSetu AI - Rural Grievance Portal</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        terracotta: {
+                            500: '#c05621',
+                            600: '#dd6b20',
+                        },
+                        sand: '#FAF8F5'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Styles & Monument Watermark */
+        body {
+            background-color: #FAF8F5;
+            color: #1F2937;
+            font-family: 'Inter', sans-serif;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        .heritage-watermark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.05;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" fill="%23166534"><path d="M150 600 h300 v-200 h-60 v-80 h-30 v-40 h-60 v40 h-30 v80 h-60 z M180 560 v-120 h40 v120 z M320 560 v-120 h40 v120 z M250 320 a 30 30 0 0 1 30 -30 a 30 30 0 0 1 30 30 z"/><path d="M750 600 h300 v-150 l-150 -120 l-150 120 z M820 560 v-80 h40 v80 z M940 560 v-80 h40 v80 z"/><circle cx="900" cy="250" r="40" fill="none" stroke="%23166534" stroke-width="8"/><path d="M450 600 h300 v-300 l-50 -50 h-200 l-50 50 z M550 560 v-180 h100 v180 z"/><path d="M0 600 h1200 v20 H0 z"/></svg>');
+            background-repeat: repeat-x;
+            background-position: bottom center;
+            background-size: contain;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+        }
+
+        .pulse-recording {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(220, 38, 38, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+    </style>
+</head>
+<body class="pb-20 md:pb-6 relative flex flex-col min-h-screen">
+
+    <!-- Subtle Heritage Background Watermark (5-10% Opacity) -->
+    <div class="heritage-watermark" aria-hidden="true"></div>
+
+    <!-- MAIN HEADER -->
+    <header class="sticky top-0 z-40 bg-white/95 border-b border-amber-100 shadow-sm backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between">
+            
+            <!-- Left Header: Title & Language Selector -->
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-100 text-emerald-800 p-2 rounded-xl border border-emerald-200 hidden sm:block">
+                    <i class="fa-solid fa-building-columns text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xs font-semibold text-emerald-800 tracking-wider uppercase">GramSetu AI</h1>
+                    <p class="text-xs text-gray-500 font-medium hidden md:block" id="subHeaderTitle">Rural Grievance Portal • గ్రామీణ ప్రజా సమస్యల పోర్టల్</p>
+                </div>
+                
+                <!-- Language Selector Dropdown -->
+                <div class="relative ml-2">
+                    <select id="languageSelect" onchange="changeLanguage(this.value)" class="bg-amber-50/80 border border-amber-200 text-amber-900 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm">
+                        <option value="en">🇮🇳 English</option>
+                        <option value="te">🇮🇳 తెలుగు (Telugu)</option>
+                        <option value="hi">🇮🇳 हिंदी (Hindi)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Desktop Navigation Tabs (Center/Right) -->
+            <nav class="hidden md:flex items-center space-x-1 bg-gray-100/80 p-1 rounded-xl border border-gray-200">
+                <button onclick="switchTab('home')" id="dtab-home" class="nav-tab-btn text-xs font-semibold px-4 py-2 rounded-lg transition-all text-emerald-800 bg-white shadow-sm">
+                    <i class="fa-solid fa-house mr-1.5"></i><span data-i18n="nav_home">Home</span>
+                </button>
+                <button onclick="switchTab('report')" id="dtab-report" class="nav-tab-btn text-xs font-semibold px-4 py-2 rounded-lg transition-all text-gray-600 hover:text-emerald-800">
+                    <i class="fa-solid fa-bullhorn mr-1.5"></i><span data-i18n="nav_report">Report</span>
+                </button>
+                <button onclick="switchTab('track')" id="dtab-track" class="nav-tab-btn text-xs font-semibold px-4 py-2 rounded-lg transition-all text-gray-600 hover:text-emerald-800">
+                    <i class="fa-solid fa-magnifying-glass-location mr-1.5"></i><span data-i18n="nav_track">Track</span>
+                </button>
+                <button onclick="switchTab('recent')" id="dtab-recent" class="nav-tab-btn text-xs font-semibold px-4 py-2 rounded-lg transition-all text-gray-600 hover:text-emerald-800">
+                    <i class="fa-solid fa-clock-rotate-left mr-1.5"></i><span data-i18n="nav_recent">Recent</span>
+                </button>
+                <button onclick="switchTab('profile')" id="dtab-profile" class="nav-tab-btn text-xs font-semibold px-4 py-2 rounded-lg transition-all text-gray-600 hover:text-emerald-800">
+                    <i class="fa-solid fa-user-check mr-1.5"></i><span data-i18n="nav_profile">Profile</span>
+                </button>
+            </nav>
+
+            <!-- MANDATORY REQUIREMENT: Logo at TOP-RIGHT -->
+            <div class="flex items-center space-x-2">
+                <!-- Authority Portal Toggle -->
+                <button onclick="toggleAuthorityMode()" id="authorityToggleBtn" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center space-x-1 transition shadow-sm" title="Switch to Officer Portal">
+                    <i class="fa-solid fa-user-shield text-emerald-700"></i>
+                    <span class="hidden sm:inline" id="portalBtnText">Officer Portal</span>
+                </button>
+
+                <!-- TOP-RIGHT LOGO -->
+                <div class="flex items-center space-x-2 pl-2 border-l border-gray-200" title="GramSetu AI - Bridging Citizens, AI & Government">
+                    <div class="text-right hidden sm:block">
+                        <div class="text-xs font-bold text-emerald-900 leading-tight">GramSetu AI</div>
+                        <div class="text-[9px] text-amber-800 font-semibold tracking-tighter">గ్రామసేతు • ग्रामसेतु</div>
+                    </div>
+                    <!-- Custom Visual Logo Emblem: Village + Bridge + AI Digital Node -->
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-700 via-emerald-800 to-amber-700 p-0.5 shadow-md flex items-center justify-center">
+                        <div class="w-full h-full bg-white rounded-[10px] flex items-center justify-center relative overflow-hidden">
+                            <i class="fa-solid fa-bridge text-emerald-700 text-sm absolute -bottom-1"></i>
+                            <i class="fa-solid fa-house-chimney-window text-amber-600 text-[10px] absolute top-1 left-1"></i>
+                            <i class="fa-solid fa-microchip text-emerald-600 text-[9px] absolute top-1 right-1 animate-pulse"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy Notification Banner -->
+        <div class="bg-emerald-800 text-white text-[11px] py-1 px-4 text-center flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-shield-halved text-amber-300"></i>
+            <span data-i18n="privacy_banner">Your privacy matters. We collect ONLY your mobile number and problem location required to resolve grievances.</span>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER FOR DYNAMIC VIEWS -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow z-10 w-full">
+
+        <!-- ================= TAB 1: HOME ================= -->
+        <section id="view-home" class="tab-view space-y-8">
+            <!-- Hero Banner -->
+            <div class="relative rounded-3xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-amber-900 text-white p-6 md:p-10 shadow-xl overflow-hidden border border-emerald-700">
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                
+                <div class="relative z-10 max-w-3xl space-y-4">
+                    <div class="inline-flex items-center space-x-2 bg-emerald-700/60 border border-emerald-500/40 rounded-full px-3 py-1 text-xs font-medium text-amber-200">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>AI-Powered Civic Redressal for Rural India</span>
+                    </div>
+                    
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight" data-i18n="hero_title">
+                        Report. Track. Resolve.
+                    </h2>
+                    <p class="text-emerald-100 text-sm md:text-lg font-normal leading-relaxed" data-i18n="hero_subtitle">
+                        One simple, accessible platform connecting rural citizens directly with local panchayat and department authorities. Speak or snap a photo in your language.
+                    </p>
+
+                    <!-- Primary Action Buttons -->
+                    <div class="pt-2 flex flex-col sm:flex-row gap-3">
+                        <button onclick="switchTab('report')" class="bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center space-x-3 text-base shadow-lg hover:shadow-amber-500/20 transition transform active:scale-95">
+                            <i class="fa-solid fa-microphone text-xl"></i>
+                            <span data-i18n="btn_report_problem">🎤 Report a Problem</span>
+                        </button>
+                        <button onclick="switchTab('track')" class="bg-white/10 hover:bg-white/20 text-white font-semibold px-6 py-3.5 rounded-2xl flex items-center justify-center space-x-2 text-base border border-white/20 backdrop-blur-sm transition">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span data-i18n="btn_track_status">🔍 Track Complaint</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Workflow Pipeline -->
+            <div class="glass-card rounded-2xl p-6 shadow-sm border border-emerald-100">
+                <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 text-center" data-i18n="workflow_heading">
+                    How GramSetu AI Works • గ్రామసేతు పనిచేసే విధానం
+                </h3>
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-3 text-center">
+                    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center text-base mb-2 font-bold shadow-sm">1</div>
+                        <span class="text-xs font-semibold text-emerald-900" data-i18n="wf_step1">Citizen Speaks or Snaps Photo</span>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-xl border border-amber-100 flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-amber-600 text-white flex items-center justify-center text-base mb-2 font-bold shadow-sm">2</div>
+                        <span class="text-xs font-semibold text-amber-900" data-i18n="wf_step2">AI Categorizes & Assesses</span>
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-base mb-2 font-bold shadow-sm">3</div>
+                        <span class="text-xs font-semibold text-blue-900" data-i18n="wf_step3">Department Routing</span>
+                    </div>
+                    <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center text-base mb-2 font-bold shadow-sm">4</div>
+                        <span class="text-xs font-semibold text-indigo-900" data-i18n="wf_step4">Officer Inspection</span>
+                    </div>
+                    <div class="p-3 bg-purple-50 rounded-xl border border-purple-100 flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center text-base mb-2 font-bold shadow-sm">5</div>
+                        <span class="text-xs font-semibold text-purple-900" data-i18n="wf_step5">Field Repair Executed</span>
+                    </div>
+                    <div class="p-3 bg-teal-50 rounded-xl border border-teal-100 flex flex-col items-center col-span-2 md:col-span-1">
+                        <div class="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center text-base mb-2 font-bold shadow-sm">6</div>
+                        <span class="text-xs font-semibold text-teal-900" data-i18n="wf_step6">Verified Resolution</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Cards Grid -->
+            <div class="grid md:grid-cols-3 gap-5">
+                <div class="glass-card p-5 rounded-2xl border border-emerald-100 hover:shadow-md transition">
+                    <div class="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-xl flex items-center justify-center text-xl mb-3">
+                        <i class="fa-solid fa-microphone-lines"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-base mb-1" data-i18n="f1_title">Voice Reporting</h4>
+                    <p class="text-xs text-gray-600 leading-relaxed" data-i18n="f1_desc">No typing required. Simply press the microphone button and speak in Telugu, Hindi, or English.</p>
+                </div>
+
+                <div class="glass-card p-5 rounded-2xl border border-amber-100 hover:shadow-md transition">
+                    <div class="w-12 h-12 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center text-xl mb-3">
+                        <i class="fa-solid fa-camera-retro"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-base mb-1" data-i18n="f2_title">Photo & Video Evidence</h4>
+                    <p class="text-xs text-gray-600 leading-relaxed" data-i18n="f2_desc">Attach clear photos or short video clips of potholes, broken lights, or leaking water pipelines.</p>
+                </div>
+
+                <div class="glass-card p-5 rounded-2xl border border-blue-100 hover:shadow-md transition">
+                    <div class="w-12 h-12 bg-blue-100 text-blue-800 rounded-xl flex items-center justify-center text-xl mb-3">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-base mb-1" data-i18n="f3_title">Smart AI Routing</h4>
+                    <p class="text-xs text-gray-600 leading-relaxed" data-i18n="f3_desc">AI automatically classifies category, priority level, and assigns the correct Gram Panchayat department.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: REPORT ================= -->
+        <section id="view-report" class="tab-view hidden space-y-6">
+            <div class="glass-card p-6 rounded-3xl border border-emerald-200 shadow-md max-w-4xl mx-auto space-y-6">
+                <div class="border-b border-gray-200 pb-4">
+                    <h2 class="text-xl md:text-2xl font-bold text-emerald-900 flex items-center space-x-2">
+                        <i class="fa-solid fa-bullhorn text-amber-600"></i>
+                        <span data-i18n="report_heading">Tell us your problem • మీ సమస్యను తెలియజేయండి</span>
+                    </h2>
+                    <p class="text-xs text-gray-500 mt-1" data-i18n="report_sub">You can speak, upload a photo/video, or type details below.</p>
+                </div>
+
+                <!-- Input Method Cards -->
+                <div class="grid grid-cols-3 gap-3">
+                    <button type="button" onclick="setReportMode('voice')" id="modeBtn-voice" class="p-3 rounded-2xl border-2 border-emerald-600 bg-emerald-50 text-emerald-900 flex flex-col items-center justify-center space-y-1 font-bold text-xs shadow-sm transition">
+                        <i class="fa-solid fa-microphone text-2xl text-emerald-700"></i>
+                        <span data-i18n="mode_voice">🎤 Voice</span>
+                    </button>
+                    <button type="button" onclick="setReportMode('media')" id="modeBtn-media" class="p-3 rounded-2xl border-2 border-gray-200 bg-white text-gray-700 flex flex-col items-center justify-center space-y-1 font-bold text-xs shadow-sm hover:border-emerald-300 transition">
+                        <i class="fa-solid fa-camera text-2xl text-amber-600"></i>
+                        <span data-i18n="mode_photo">📷 Photo / Video</span>
+                    </button>
+                    <button type="button" onclick="setReportMode('text')" id="modeBtn-text" class="p-3 rounded-2xl border-2 border-gray-200 bg-white text-gray-700 flex flex-col items-center justify-center space-y-1 font-bold text-xs shadow-sm hover:border-emerald-300 transition">
+                        <i class="fa-solid fa-keyboard text-2xl text-blue-600"></i>
+                        <span data-i18n="mode_text">⌨️ Text</span>
+                    </button>
+                </div>
+
+                <!-- Voice Recording Widget -->
+                <div id="voiceSection" class="bg-amber-50/70 p-5 rounded-2xl border border-amber-200 text-center space-y-3">
+                    <p class="text-xs font-semibold text-amber-900" data-i18n="voice_instruction">Press microphone button and speak in your language</p>
+                    
+                    <button type="button" id="micBtn" onclick="toggleVoiceRecording()" class="w-20 h-20 rounded-full bg-emerald-600 text-white text-3xl flex items-center justify-center mx-auto shadow-lg hover:bg-emerald-700 transition transform active:scale-95">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <p id="micStatus" class="text-xs font-bold text-emerald-800">Tap to start speaking</p>
+                    
+                    <div id="aiVoiceResult" class="hidden text-left bg-white p-3 rounded-xl border border-amber-200 text-xs space-y-1">
+                        <div class="text-[10px] uppercase font-bold text-amber-700">AI Speech Transcription:</div>
+                        <p id="speechTranscribedText" class="text-gray-800 italic">"..."</p>
+                    </div>
+                </div>
+
+                <!-- Text Description -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-700 uppercase" data-i18n="lbl_problem_desc">Problem Description</label>
+                    <textarea id="reportDescription" rows="3" placeholder="Describe the problem (e.g. Broken road pothole near primary school)..." class="w-full text-xs p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                </div>
+
+                <!-- Photo / Video Attachment Simulation -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-700 uppercase" data-i18n="lbl_evidence">Attach Photo / Video Evidence</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="file" id="mediaFileInput" accept="image/*,video/*" onchange="handleFilePreview(this)" class="hidden">
+                        <button type="button" onclick="document.getElementById('mediaFileInput').click()" class="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center space-x-2 transition">
+                            <i class="fa-solid fa-upload"></i>
+                            <span data-i18n="btn_upload_media">Upload File or Take Photo</span>
+                        </button>
+                        <span id="uploadedFileName" class="text-xs text-gray-500 italic">No file attached</span>
+                    </div>
+                    <!-- Sample Evidence Selector for Easy Demo Testing -->
+                    <div class="pt-1 flex items-center space-x-2">
+                        <span class="text-[10px] text-gray-500">Quick Demo Samples:</span>
+                        <button type="button" onclick="useDemoImage('pothole')" class="text-[10px] bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded">🛣️ Pothole</button>
+                        <button type="button" onclick="useDemoImage('drainage')" class="text-[10px] bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded">🚰 Drainage</button>
+                        <button type="button" onclick="useDemoImage('streetlight')" class="text-[10px] bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded">💡 Streetlight</button>
+                    </div>
+                    <div id="filePreviewContainer" class="hidden mt-2">
+                        <img id="filePreviewImg" src="" alt="Preview" class="h-32 rounded-xl object-cover border border-gray-300">
+                    </div>
+                </div>
+
+                <!-- Location Picker & Map -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold text-gray-700 uppercase" data-i18n="lbl_location">Location Details</label>
+                        <button type="button" onclick="fetchGPSLocation()" class="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-3 py-1 rounded-lg flex items-center space-x-1 hover:bg-amber-200 transition">
+                            <i class="fa-solid fa-location-crosshairs text-amber-700"></i>
+                            <span data-i18n="btn_use_location">📍 Use My Location</span>
+                        </button>
+                    </div>
+                    <input type="text" id="locationInput" value="Rampur Village, Ward 4, Panchayat Road" placeholder="Village name, landmark..." class="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500">
+                    
+                    <div id="reportMap" class="h-44 w-full rounded-2xl border border-gray-300 z-0"></div>
+                </div>
+
+                <!-- AI Pre-Classification Result -->
+                <div id="aiAnalysisBox" class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold text-emerald-900 uppercase flex items-center space-x-1">
+                            <i class="fa-solid fa-microchip text-emerald-600"></i>
+                            <span>AI Grievance Classification</span>
+                        </span>
+                        <span id="aiConfidenceBadge" class="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Confidence: 94%</span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                        <div><span class="text-gray-500">Detected:</span> <strong id="aiDetectedProblem" class="block text-gray-800">Road / Pothole</strong></div>
+                        <div><span class="text-gray-500">Department:</span> <strong id="aiDepartment" class="block text-gray-800">Panchayat Roads</strong></div>
+                        <div><span class="text-gray-500">Priority:</span> <strong id="aiPriority" class="block text-amber-600">High Priority</strong></div>
+                        <div><span class="text-gray-500">Est. SLA:</span> <strong id="aiSLA" class="block text-gray-800">48 Hours</strong></div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="button" onclick="submitComplaint()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 rounded-2xl text-base shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span data-i18n="btn_submit_complaint">Confirm & Submit Complaint</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: TRACK ================= -->
+        <section id="view-track" class="tab-view hidden space-y-6">
+            <div class="glass-card p-6 rounded-3xl border border-gray-200 max-w-3xl mx-auto space-y-6">
+                <div class="text-center space-y-2">
+                    <h2 class="text-2xl font-bold text-gray-800" data-i18n="track_title">Track Your Complaint • ఫిర్యాదు స్థితిని తనిఖీ చేయండి</h2>
+                    <p class="text-xs text-gray-500" data-i18n="track_sub">Enter your unique Grievance ID (e.g., GRV-2026-1042)</p>
+                </div>
+
+                <!-- Search Input Bar -->
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="trackSearchInput" value="GRV-2026-1042" placeholder="GRV-2026-XXXX" class="flex-grow text-sm font-semibold p-3 border-2 border-emerald-600 rounded-2xl uppercase focus:outline-none">
+                    <button onclick="performTrackingSearch()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-6 py-3 rounded-2xl text-xs transition shadow-md">
+                        <i class="fa-solid fa-magnifying-glass mr-1"></i> Track
+                    </button>
+                </div>
+
+                <!-- Complaint Details Header Card -->
+                <div id="trackResultContainer" class="space-y-6">
+                    <div class="bg-amber-50/80 p-4 rounded-2xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <span id="trackComplaintId" class="text-xs font-mono font-bold bg-amber-200 text-amber-900 px-2 py-1 rounded-md">GRV-2026-1042</span>
+                            <h3 id="trackCategory" class="text-base font-bold text-gray-800 mt-1">🛣️ Road & Transportation - Pothole</h3>
+                            <p id="trackLocation" class="text-xs text-gray-600"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i> Village Main Road, Rampur</p>
+                        </div>
+                        <div class="text-right">
+                            <span id="trackStatusBadge" class="inline-block bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full border border-blue-300">
+                                Work In Progress
+                            </span>
+                            <p id="trackDate" class="text-[10px] text-gray-500 mt-1">Submitted: 17 Sep 2026</p>
+                        </div>
+                    </div>
+
+                    <!-- Visual Vertical Timeline -->
+                    <div>
+                        <h4 class="text-xs font-bold text-gray-700 uppercase mb-4" data-i18n="lbl_timeline">Grievance Resolution Progress Timeline</h4>
+                        
+                        <div id="timelineList" class="relative pl-6 space-y-6 border-l-2 border-emerald-200">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Citizen Verification Action Box -->
+                    <div id="citizenVerificationBox" class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl space-y-3 hidden">
+                        <h4 class="text-xs font-extrabold text-emerald-900 uppercase">Verification Requested by Panchayati Officer</h4>
+                        <p class="text-xs text-gray-700">The officer marked this issue as repaired. Please inspect the village site and confirm resolution:</p>
+                        <div class="flex space-x-3">
+                            <button onclick="citizenConfirmResolution(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs">
+                                ✓ Problem Resolved
+                            </button>
+                            <button onclick="citizenConfirmResolution(false)" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl text-xs">
+                                ↻ Still a Problem
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: RECENT ================= -->
+        <section id="view-recent" class="tab-view hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800" data-i18n="recent_title">Recent Public Grievances</h2>
+                    <p class="text-xs text-gray-500" data-i18n="recent_sub">Transparent community view. Names and mobile numbers are strictly hidden for privacy.</p>
+                </div>
+
+                <!-- Filter Chips -->
+                <div class="flex flex-wrap gap-1.5">
+                    <button onclick="filterRecent('all')" class="filter-btn bg-emerald-800 text-white text-xs font-semibold px-3 py-1.5 rounded-xl">All</button>
+                    <button onclick="filterRecent('Road')" class="filter-btn bg-white border border-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-gray-100">🛣️ Roads</button>
+                    <button onclick="filterRecent('Water')" class="filter-btn bg-white border border-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-gray-100">💧 Water</button>
+                    <button onclick="filterRecent('Drainage')" class="filter-btn bg-white border border-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-gray-100">🚰 Drainage</button>
+                    <button onclick="filterRecent('Lights')" class="filter-btn bg-white border border-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-gray-100">💡 Lights</button>
+                </div>
+            </div>
+
+            <!-- Complaint Cards Grid -->
+            <div id="recentCardsGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Cards dynamically populated -->
+            </div>
+        </section>
+
+        <!-- ================= TAB 5: PROFILE ================= -->
+        <section id="view-profile" class="tab-view hidden space-y-6">
+            <div class="glass-card p-6 rounded-3xl border border-gray-200 max-w-2xl mx-auto space-y-6">
+                <!-- User Profile Header -->
+                <div class="flex items-center space-x-4 border-b border-gray-200 pb-4">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-amber-600 text-white flex items-center justify-center text-2xl font-bold shadow-md">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Authenticated Citizen</h3>
+                        <p class="text-xs text-gray-600" id="userMobileDisplay">Mobile: +91 98765 43210</p>
+                        <p class="text-xs text-emerald-800 font-medium" id="userLocationDisplay">Location: Rampur Village, Panchayat Ward 4</p>
+                    </div>
+                </div>
+
+                <!-- My Complaints History (Private) -->
+                <div>
+                    <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3" data-i18n="lbl_my_complaints">My Private Complaint History</h4>
+                    <div id="myComplaintsList" class="space-y-3">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Preferences & Privacy Note -->
+                <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 text-xs space-y-2">
+                    <h5 class="font-bold text-amber-900" data-i18n="privacy_heading">🔒 Privacy Guarantee</h5>
+                    <p class="text-amber-800 leading-relaxed" data-i18n="privacy_desc">
+                        GramSetu AI strictly avoids gathering full names, Aadhaar numbers, or email addresses. Your grievances are stored under encrypted tokens associated only with your mobile number.
+                    </p>
+                </div>
+
+                <button onclick="simulateLogout()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold py-2.5 rounded-xl transition">
+                    Logout / Change Mobile
+                </button>
+            </div>
+        </section>
+
+        <!-- ================= AUTHORITY PORTAL VIEW ================= -->
+        <section id="view-authority" class="tab-view hidden space-y-6">
+            <div class="bg-slate-900 text-white p-6 rounded-3xl shadow-xl space-y-6 border border-slate-800">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-amber-500/30">Gram Panchayat Officer Portal</span>
+                        <h2 class="text-xl font-bold mt-1">Authority Management Dashboard</h2>
+                    </div>
+                    <button onclick="switchTab('home')" class="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-3 py-2 rounded-xl text-slate-300">
+                        Exit to Citizen Portal
+                    </button>
+                </div>
+
+                <!-- Authority Stats Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700 text-center">
+                        <span class="text-2xl font-black text-amber-400">24</span>
+                        <span class="block text-[11px] text-slate-400 font-semibold">New Complaints</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700 text-center">
+                        <span class="text-2xl font-black text-red-400">7</span>
+                        <span class="block text-[11px] text-slate-400 font-semibold">High Priority</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700 text-center">
+                        <span class="text-2xl font-black text-blue-400">18</span>
+                        <span class="block text-[11px] text-slate-400 font-semibold">In Progress</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700 text-center">
+                        <span class="text-2xl font-black text-emerald-400">56</span>
+                        <span class="block text-[11px] text-slate-400 font-semibold">Resolved</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700 text-center col-span-2 md:col-span-1">
+                        <span class="text-2xl font-black text-purple-400">3</span>
+                        <span class="block text-[11px] text-slate-400 font-semibold">Overdue SLA</span>
+                    </div>
+                </div>
+
+                <!-- Officer Complaint List Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-800 text-slate-400 uppercase text-[10px]">
+                            <tr>
+                                <th class="p-3">ID</th>
+                                <th class="p-3">Category</th>
+                                <th class="p-3">Location</th>
+                                <th class="p-3">Priority</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="authorityTableBody" class="divide-y divide-slate-800 text-slate-200">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FLOATING AI ASSISTANT CHAT BOT -->
+    <div class="fixed bottom-20 md:bottom-6 right-4 z-50">
+        <!-- Floating Chat Button -->
+        <button onclick="toggleChatWidget()" class="bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold px-4 py-3 rounded-full shadow-2xl flex items-center space-x-2 transition transform hover:scale-105 border-2 border-amber-300">
+            <i class="fa-solid fa-comments text-lg"></i>
+            <span class="text-xs font-extrabold" data-i18n="chat_button">💬 Ask GramSetu AI</span>
+        </button>
+
+        <!-- Chat Window Popup -->
+        <div id="chatBoxModal" class="hidden absolute bottom-14 right-0 w-80 md:w-96 bg-white rounded-3xl shadow-2xl border border-amber-200 overflow-hidden flex flex-col h-96">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-emerald-800 to-amber-800 text-white p-3 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-7 h-7 rounded-full bg-amber-400 text-emerald-950 flex items-center justify-center font-bold text-xs">AI</div>
+                    <div>
+                        <h4 class="text-xs font-bold">GramSetu AI Helper</h4>
+                        <span class="text-[9px] text-emerald-200">Online • 24/7 Rural Support</span>
+                    </div>
+                </div>
+                <button onclick="toggleChatWidget()" class="text-white hover:text-amber-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Messages Scroll Area -->
+            <div id="chatMessages" class="p-3 flex-grow overflow-y-auto space-y-2 text-xs bg-slate-50">
+                <div class="bg-emerald-100 text-emerald-900 p-2.5 rounded-2xl rounded-tl-none max-w-[85%] font-medium">
+                    Namaste! How can I help you report or track your village problem today?
+                </div>
+            </div>
+
+            <!-- Quick Preset Chips -->
+            <div class="p-2 bg-gray-100 border-t border-gray-200 flex space-x-1 overflow-x-auto text-[10px]">
+                <button onclick="sendQuickChatMessage('How do I report a road problem?')" class="bg-white border text-gray-700 px-2 py-1 rounded-full whitespace-nowrap hover:bg-emerald-50">Road Problem?</button>
+                <button onclick="sendQuickChatMessage('Where is my complaint?')" class="bg-white border text-gray-700 px-2 py-1 rounded-full whitespace-nowrap hover:bg-emerald-50">Track Complaint</button>
+                <button onclick="sendQuickChatMessage('నా ఫిర్యాదు ఎక్కడ ఉంది?')" class="bg-white border text-gray-700 px-2 py-1 rounded-full whitespace-nowrap hover:bg-emerald-50">తెలుగు సహాయం</button>
+            </div>
+
+            <!-- Input Bar -->
+            <div class="p-2 border-t border-gray-200 flex items-center space-x-2 bg-white">
+                <input type="text" id="chatInputText" placeholder="Type your question..." onkeypress="if(event.key==='Enter') sendChatMessage()" class="flex-grow text-xs p-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                <button onclick="sendChatMessage()" class="bg-emerald-700 text-white p-2 rounded-xl hover:bg-emerald-800 text-xs"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg px-2 py-1 flex justify-around items-center">
+        <button onclick="switchTab('home')" id="mtab-home" class="flex flex-col items-center p-1 text-emerald-700">
+            <i class="fa-solid fa-house text-lg"></i>
+            <span class="text-[10px] font-semibold" data-i18n="nav_home">Home</span>
+        </button>
+        <button onclick="switchTab('report')" id="mtab-report" class="flex flex-col items-center p-1 text-gray-500">
+            <i class="fa-solid fa-bullhorn text-lg"></i>
+            <span class="text-[10px] font-semibold" data-i18n="nav_report">Report</span>
+        </button>
+        <button onclick="switchTab('track')" id="mtab-track" class="flex flex-col items-center p-1 text-gray-500">
+            <i class="fa-solid fa-magnifying-glass-location text-lg"></i>
+            <span class="text-[10px] font-semibold" data-i18n="nav_track">Track</span>
+        </button>
+        <button onclick="switchTab('recent')" id="mtab-recent" class="flex flex-col items-center p-1 text-gray-500">
+            <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+            <span class="text-[10px] font-semibold" data-i18n="nav_recent">Recent</span>
+        </button>
+        <button onclick="switchTab('profile')" id="mtab-profile" class="flex flex-col items-center p-1 text-gray-500">
+            <i class="fa-solid fa-user-check text-lg"></i>
+            <span class="text-[10px] font-semibold" data-i18n="nav_profile">Profile</span>
+        </button>
+    </nav>
+
+    <!-- AUTHENTICATION / OTP MODAL -->
+    <div id="authModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 text-center shadow-2xl border border-amber-200">
+            <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 mx-auto flex items-center justify-center text-xl">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800">Citizen Mobile Login</h3>
+            <p class="text-xs text-gray-500">No name or personal documents required. Enter your 10-digit mobile number.</p>
+            
+            <div id="otpStep1" class="space-y-3">
+                <input type="tel" id="mobileNumberInput" placeholder="Mobile Number (e.g. 9876543210)" maxlength="10" class="w-full text-center text-sm font-bold tracking-widest p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500">
+                <input type="text" id="villageLocationInput" placeholder="Village / Panchayat Name" value="Rampur Village" class="w-full text-center text-xs p-2.5 rounded-xl border border-gray-300">
+                <button onclick="sendOTP()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl text-xs">
+                    Send OTP Simulation
+                </button>
+            </div>
+
+            <div id="otpStep2" class="space-y-3 hidden">
+                <p class="text-[11px] text-emerald-800 font-semibold">OTP sent to +91 <span id="sentMobileSpan"></span></p>
+                <input type="text" id="otpCodeInput" value="5678" maxlength="4" placeholder="Enter 4-digit OTP (Default: 5678)" class="w-full text-center text-lg font-extrabold tracking-widest p-2 rounded-xl border border-emerald-500">
+                <button onclick="verifyOTP()" class="w-full bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold py-3 rounded-xl text-xs">
+                    Verify & Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OFFICER COMPLAINT EDIT MODAL -->
+    <div id="officerModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b pb-2">
+                <h3 class="text-sm font-bold text-gray-800" id="officerModalTitle">Manage Complaint</h3>
+                <button onclick="closeOfficerModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div id="officerModalContent" class="space-y-3 text-xs">
+                <!-- Dynamically filled -->
+            </div>
+
+            <div class="space-y-2 pt-2 border-t">
+                <label class="block text-xs font-bold text-gray-700">Update Status:</label>
+                <select id="officerStatusSelect" class="w-full p-2 border rounded-xl font-semibold">
+                    <option value="Submitted">Submitted</option>
+                    <option value="Assigned">Assigned to Field Worker</option>
+                    <option value="In Progress">Work In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                </select>
+
+                <label class="block text-xs font-bold text-gray-700 mt-2">Assign Worker Name:</label>
+                <input type="text" id="officerWorkerInput" value="Ramesh Kumar (Panchayat Line Mechanic)" class="w-full p-2 border rounded-xl">
+
+                <label class="block text-xs font-bold text-gray-700 mt-2">Resolution Progress Notes:</label>
+                <textarea id="officerNotesInput" rows="2" class="w-full p-2 border rounded-xl" placeholder="Describe field repair actions taken..."></textarea>
+
+                <button onclick="saveOfficerUpdate()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl">
+                    Save Changes & Send Citizen Notification
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APP LOGIC & STATE MANAGEMENT -->
+    <script>
+        // API key and endpoints for Gemini AI integration
+        const apiKey = "";
+        const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        // Language Translation Dictionaries
+        const translations = {
+            en: {
+                nav_home: "Home", nav_report: "Report", nav_track: "Track", nav_recent: "Recent", nav_profile: "Profile",
+                hero_title: "Report. Track. Resolve.", hero_subtitle: "One simple, accessible platform connecting rural citizens directly with local panchayat and department authorities.",
+                btn_report_problem: "🎤 Report a Problem", btn_track_status: "🔍 Track Complaint",
+                report_heading: "Tell us your problem", report_sub: "Speak, upload a photo/video, or type details below.",
+                mode_voice: "🎤 Voice", mode_photo: "📷 Photo / Video", mode_text: "⌨️ Text",
+                voice_instruction: "Press microphone button and speak in your language",
+                lbl_problem_desc: "Problem Description", lbl_evidence: "Attach Photo / Video Evidence", btn_upload_media: "Upload File or Take Photo",
+                lbl_location: "Location Details", btn_use_location: "📍 Use My Location", btn_submit_complaint: "Confirm & Submit Complaint",
+                track_title: "Track Your Complaint", track_sub: "Enter your unique Grievance ID (e.g., GRV-2026-1042)",
+                recent_title: "Recent Public Grievances", recent_sub: "Transparent community view. Names & phone numbers are strictly hidden.",
+                chat_button: "💬 Ask GramSetu AI", privacy_banner: "Your privacy matters. We collect ONLY your mobile number and problem location required to resolve grievances."
+            },
+            te: {
+                nav_home: "హోమ్", nav_report: "ఫిర్యాదు", nav_track: "ట్రాక్", nav_recent: "ఇటీవలి", nav_profile: "ప్రొఫైల్",
+                hero_title: "ఫిర్యాదు చేయండి. ట్రాక్ చేయండి. పరిష్కరించండి.", hero_subtitle: "గ్రామీణ పౌరులను పంచాయతీ అధికారులతో నేరుగా అనుసంధానించే ఒకే ఒక సరళమైన వేదిక.",
+                btn_report_problem: "🎤 సమస్యను చెప్పండి", btn_track_status: "🔍 స్థితిని చూడండి",
+                report_heading: "మీ సమస్యను తెలియజేయండి", report_sub: "మాట్లాడండి లేదా ఫోటో తీసి అప్‌లోడ్ చేయండి.",
+                mode_voice: "🎤 వాయిస్", mode_photo: "📷 ఫోటో / వీడియో", mode_text: "⌨️ టెక్స్ట్",
+                voice_instruction: "మైక్రోఫోన్ నొక్కి మీ బాషలో మాట్లాడండి",
+                lbl_problem_desc: "సమస్య వివరాలు", lbl_evidence: "ఫోటో లేదా వీడియో జతచేయండి", btn_upload_media: "ఫోటో అప్‌లోడ్ చేయండి",
+                lbl_location: "సమస్య ఉన్న ప్రదేశం", btn_use_location: "📍 నా ప్రదేశం తీసుకో", btn_submit_complaint: "సమర్పించు",
+                track_title: "మీ ఫిర్యాదును ట్రాక్ చేయండి", track_sub: "మీ ఫిర్యాదు సంఖ్య నమోదు చేయండి (ఉదా: GRV-2026-1042)",
+                recent_title: "ఇటీవలి ప్రజా సమస్యలు", recent_sub: "సమాజ పారదర్శకత. మీ పేరు మరియు ఫోన్ నంబర్ గోప్యంగా ఉంచబడుతుంది.",
+                chat_button: "💬 సహాయం తీసుకోండి", privacy_banner: "మీ గోప్యత మాకు ముఖ్యం. సమస్య పరిష్కారానికి అవసరమైన మొబైల్ నంబర్ మరియు స్థానాన్ని మాత్రమే సేకరిస్తాము."
+            },
+            hi: {
+                nav_home: "होम", nav_report: "शिकायत दर्ज करें", nav_track: "ट्रैक करें", nav_recent: "हाल की शिकायतें", nav_profile: "प्रोफाइल",
+                hero_title: "समस्या बताएं। ट्रैक करें। समाधान पाएं।", hero_subtitle: "ग्रामीण नागरिकों को सीधे स्थानीय पंचायत अधिकारियों से जोड़ने वाला एक आसान मंच।",
+                btn_report_problem: "🎤 समस्या बताएं", btn_track_status: "🔍 स्थिति जांचें",
+                report_heading: "अपनी समस्या बताइए", report_sub: "बोलकर, फोटो अपलोड करके या लिखकर दर्ज करें।",
+                mode_voice: "🎤 आवाज", mode_photo: "📷 फोटो / वीडियो", mode_text: "⌨️ पाठ",
+                voice_instruction: "माइक बटन दबाएं और अपनी भाषा में बोलें",
+                lbl_problem_desc: "समस्या का विवरण", lbl_evidence: "फोटो या वीडियो संलग्न करें", btn_upload_media: "फोटो अपलोड करें",
+                lbl_location: "स्थान का विवरण", btn_use_location: "📍 मेरा स्थान दर्ज करें", btn_submit_complaint: "पुष्टि करें और जमा करें",
+                track_title: "शिकायत का स्टेटस देखें", track_sub: "अपनी शिकायत आईडी दर्ज करें (उदा. GRV-2026-1042)",
+                recent_title: "हाल की शिकायतें", recent_sub: "पारदर्शी दृश्य। गोपनीयता के लिए नाम और फोन नंबर गुप्त रखे गए हैं।",
+                chat_button: "💬 सहायता लें", privacy_banner: "आपकी निजता महत्वपूर्ण है। हम केवल आपका मोबाइल नंबर और समस्या का स्थान एकत्र करते हैं।"
+            }
+        };
+
+        // Application State Data
+        let currentLang = 'en';
+        let authenticatedUser = { mobile: '9876543210', location: 'Rampur Village, Ward 4' };
+        let activeTab = 'home';
+        let isAuthorityMode = false;
+        let isRecording = false;
+        let recognition = null;
+        let mapInstance = null;
+        let mapMarker = null;
+        let activeSelectedComplaintId = null;
+
+        // Initial Demo Sample Complaints Dataset (10 realistic rural complaints)
+        let complaintsData = [
+            {
+                id: 'GRV-2026-1042',
+                category: 'Road & Transportation',
+                icon: 'fa-road',
+                problem: 'Large pothole near village primary school main entrance.',
+                location: 'Village Main Road, Ward 2, Rampur',
+                status: 'In Progress',
+                priority: 'High',
+                date: '17 Sep 2026',
+                lat: 17.3850, lng: 78.4867,
+                image: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=500&auto=format&fit=crop&q=60',
+                timeline: [
+                    { time: '17 Sep, 10:20 AM', title: 'Complaint Registered', desc: 'Received via Voice Input' },
+                    { time: '17 Sep, 10:21 AM', title: 'AI Classified', desc: 'Assigned to Panchayat Roads Dept (Confidence 96%)' },
+                    { time: '17 Sep, 11:05 AM', title: 'Officer Reviewed', desc: 'Panchayat Development Officer approved work budget' },
+                    { time: '17 Sep, 02:10 PM', title: 'Field Worker Assigned', desc: 'Ramesh Kumar (Road Maintenance Crew)' }
+                ]
+            },
+            {
+                id: 'GRV-2026-1039',
+                category: 'Street Lights',
+                icon: 'fa-lightbulb',
+                problem: 'Street lights on temple street flickering and off for 3 days.',
+                location: 'Temple Street, Ward 4, Rampur',
+                status: 'Resolved',
+                priority: 'Medium',
+                date: '16 Sep 2026',
+                lat: 17.3870, lng: 78.4890,
+                image: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?w=500&auto=format&fit=crop&q=60',
+                timeline: [
+                    { time: '16 Sep, 08:15 AM', title: 'Complaint Registered', desc: 'Submitted by Citizen' },
+                    { time: '16 Sep, 09:00 AM', title: 'Electrician Assigned', desc: 'Panchayat Electrician inspected transformer' },
+                    { time: '16 Sep, 04:30 PM', title: 'Resolved', desc: 'LED Bulb and fuse replaced successfully' }
+                ]
+            },
+            {
+                id: 'GRV-2026-1032',
+                category: 'Drainage',
+                icon: 'fa-faucet-drip',
+                problem: 'Overflowing open drain spreading foul smell near market.',
+                location: 'Weekly Market Bazaar, Rampur',
+                status: 'Resolved',
+                priority: 'High',
+                date: '15 Sep 2026',
+                lat: 17.3820, lng: 78.4810,
+                image: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?w=500&auto=format&fit=crop&q=60',
+                timeline: [
+                    { time: '15 Sep, 07:30 AM', title: 'Complaint Registered', desc: 'Voice submitted in Telugu' },
+                    { time: '15 Sep, 12:00 PM', title: 'Drainage Cleaned', desc: 'Sanitation team cleared silt' }
+                ]
+            },
+            {
+                id: 'GRV-2026-1028',
+                category: 'Water Supply',
+                icon: 'fa-droplet',
+                problem: 'Pipeline leakage wasting drinking water near bus stop.',
+                location: 'Gram Panchayat Bus Stop',
+                status: 'Submitted',
+                priority: 'High',
+                date: '17 Sep 2026',
+                lat: 17.3890, lng: 78.4850,
+                image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=60',
+                timeline: [
+                    { time: '17 Sep, 01:10 PM', title: 'Complaint Registered', desc: 'Waiting officer assignment' }
+                ]
+            }
+        ];
+
+        window.onload = function() {
+            renderRecentCards();
+            renderMyComplaints();
+            renderAuthorityTable();
+            initLeafletMap();
+            setupVoiceRecognition();
+
+            // Default to showing authentication modal if needed, or hide if logged in
+            document.getElementById('authModal').classList.add('hidden');
+        };
+
+        // Language Switcher Function
+        function changeLanguage(langKey) {
+            currentLang = langKey;
+            const langData = translations[langKey] || translations.en;
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (langData[key]) {
+                    el.innerText = langData[key];
+                }
+            });
+
+            const subTitles = {
+                en: "Rural Grievance Portal • గ్రామసేతు ప్రజా సమస్యల పోర్టల్",
+                te: "గ్రామీణ ప్రజా సమస్యల పోర్టల్ • GramSetu AI",
+                hi: "ग्रामीण शिकायत पोर्टल • GramSetu AI"
+            };
+            document.getElementById('subHeaderTitle').innerText = subTitles[langKey] || subTitles.en;
+        }
+
+        // Tab Switcher Function
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.tab-view').forEach(view => view.classList.add('hidden'));
+            
+            const target = document.getElementById(`view-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            // Highlight nav tabs
+            document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-emerald-800', 'shadow-sm');
+                btn.classList.add('text-gray-600');
+            });
+            const selectedDTab = document.getElementById(`dtab-${tabId}`);
+            if (selectedDTab) {
+                selectedDTab.classList.add('bg-white', 'text-emerald-800', 'shadow-sm');
+            }
+
+            if (tabId === 'report' && mapInstance) {
+                setTimeout(() => mapInstance.invalidateSize(), 300);
+            }
+        }
+
+        // Toggle Authority Mode Route (/authority)
+        function toggleAuthorityMode() {
+            isAuthorityMode = !isAuthorityMode;
+            if (isAuthorityMode) {
+                document.querySelectorAll('.tab-view').forEach(view => view.classList.add('hidden'));
+                document.getElementById('view-authority').classList.remove('hidden');
+                document.getElementById('portalBtnText').innerText = "Citizen View";
+            } else {
+                switchTab('home');
+                document.getElementById('portalBtnText').innerText = "Officer Portal";
+            }
+        }
+
+        // Initialize Leaflet Interactive Map
+        function initLeafletMap() {
+            try {
+                mapInstance = L.map('reportMap').setView([17.3850, 78.4867], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '© OpenStreetMap GramSetu'
+                }).addTo(mapInstance);
+
+                mapMarker = L.marker([17.3850, 78.4867], { draggable: true }).addTo(mapInstance);
+                mapMarker.on('dragend', function(e) {
+                    const coord = e.target.getLatLng();
+                    document.getElementById('locationInput').value = `Panchayat Ward (${coord.lat.toFixed(4)}, ${coord.lng.toFixed(4)})`;
+                });
+            } catch(e) {
+                console.warn("Map load deferred");
+            }
+        }
+
+        // GPS Fetch Location
+        function fetchGPSLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    if (mapInstance && mapMarker) {
+                        mapInstance.setView([lat, lng], 15);
+                        mapMarker.setLatLng([lat, lng]);
+                    }
+                    document.getElementById('locationInput').value = `GPS Pinpoint (${lat.toFixed(4)}, ${lng.toFixed(4)}), Rampur Sector 3`;
+                }, err => {
+                    alert("GPS position fetched via mock village satellite pin.");
+                });
+            }
+        }
+
+        // Web Speech API Voice Recognition
+        function setupVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onstart = function() {
+                    isRecording = true;
+                    document.getElementById('micBtn').classList.add('pulse-recording', 'bg-red-600');
+                    document.getElementById('micStatus').innerText = "Listening... Speak now!";
+                };
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('reportDescription').value = transcript;
+                    document.getElementById('aiVoiceResult').classList.remove('hidden');
+                    document.getElementById('speechTranscribedText').innerText = `"${transcript}"`;
+                    triggerAIAnalysis(transcript);
+                };
+
+                recognition.onerror = function() {
+                    stopRecordingUI();
+                };
+
+                recognition.onend = function() {
+                    stopRecordingUI();
+                };
+            }
+        }
+
+        function toggleVoiceRecording() {
+            if (!recognition) {
+                // Speech recognition fallback simulation
+                const sampleVoicePrompts = [
+                    "మా గ్రామంలో రోడ్డు మీద పెద్ద గుంత ఉంది. నడవడానికి కష్టంగా ఉంది.",
+                    "हमारे वार्ड में स्ट्रीट लाइट 3 दिनों से खराब है।",
+                    "Water supply pipe leaking severely near panchayat office."
+                ];
+                const randomPrompt = sampleVoicePrompts[Math.floor(Math.random() * sampleVoicePrompts.length)];
+                document.getElementById('reportDescription').value = randomPrompt;
+                document.getElementById('aiVoiceResult').classList.remove('hidden');
+                document.getElementById('speechTranscribedText').innerText = `"${randomPrompt}"`;
+                triggerAIAnalysis(randomPrompt);
+                return;
+            }
+
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                if (currentLang === 'te') recognition.lang = 'te-IN';
+                else if (currentLang === 'hi') recognition.lang = 'hi-IN';
+                else recognition.lang = 'en-US';
+                
+                recognition.start();
+            }
+        }
+
+        function stopRecordingUI() {
+            isRecording = false;
+            const btn = document.getElementById('micBtn');
+            btn.classList.remove('pulse-recording', 'bg-red-600');
+            btn.classList.add('bg-emerald-600');
+            document.getElementById('micStatus').innerText = "Tap to speak again";
+        }
+
+        // AI Category and SLA Classification Engine using Gemini 3 Flash
+        async function triggerAIAnalysis(text) {
+            if (!text || text.trim().length < 3) return;
+
+            document.getElementById('aiDetectedProblem').innerText = "Analyzing with Gemini AI...";
+
+            try {
+                const prompt = `Act as an AI Grievance Categorizer for Indian rural panchayats. Analyze this citizen complaint text: "${text}".
+                Return a strict JSON object with properties:
+                "problem": concise problem name,
+                "category": choose one from [Roads & Potholes, Water Supply, Drainage, Street Lights, Waste Management, Electricity],
+                "department": responsible panchayat department,
+                "priority": choose from [High, Medium, Low],
+                "sla": estimated hours (e.g. 24 Hours, 48 Hours),
+                "confidence": number between 85 and 99`;
+
+                const response = await fetch(geminiApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                const data = await response.json();
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    const aiResult = JSON.parse(data.candidates[0].content.parts[0].text);
+                    
+                    document.getElementById('aiDetectedProblem').innerText = aiResult.problem || "Civic Issue";
+                    document.getElementById('aiDepartment').innerText = aiResult.department || "Gram Panchayat";
+                    document.getElementById('aiPriority').innerText = `${aiResult.priority || 'High'} Priority`;
+                    document.getElementById('aiSLA').innerText = aiResult.sla || "48 Hours";
+                    document.getElementById('aiConfidenceBadge').innerText = `Confidence: ${aiResult.confidence || 95}%`;
+                } else {
+                    fallbackLocalClassification(text);
+                }
+            } catch(err) {
+                fallbackLocalClassification(text);
+            }
+        }
+
+        function fallbackLocalClassification(text) {
+            let category = "Public Infrastructure";
+            let dept = "Gram Panchayat Works";
+            let priority = "Medium";
+
+            if (text.includes("రోడ్డు") || text.includes("road") || text.includes("pothole") || text.includes("गुंत")) {
+                category = "Roads & Transportation";
+                dept = "Panchayat Roads Dept";
+                priority = "High";
+            } else if (text.includes("light") || text.includes("లైట్") || text.includes("लाइट")) {
+                category = "Street Lights";
+                dept = "Electrical Maintenance";
+                priority = "Medium";
+            } else if (text.includes("water") || text.includes("నీరు") || text.includes("पानी")) {
+                category = "Water Supply";
+                dept = "Rural Water Works";
+                priority = "High";
+            }
+
+            document.getElementById('aiDetectedProblem').innerText = category;
+            document.getElementById('aiDepartment').innerText = dept;
+            document.getElementById('aiPriority').innerText = priority;
+            document.getElementById('aiSLA').innerText = "48 Hours";
+            document.getElementById('aiConfidenceBadge').innerText = "Confidence: 92%";
+        }
+
+        // Demo Media Attachment Handlers
+        function handleFilePreview(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('filePreviewContainer').classList.remove('hidden');
+                    document.getElementById('filePreviewImg').src = e.target.result;
+                    document.getElementById('uploadedFileName').innerText = input.files[0].name;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function useDemoImage(type) {
+            const urls = {
+                pothole: "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=500&auto=format&fit=crop&q=60",
+                drainage: "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?w=500&auto=format&fit=crop&q=60",
+                streetlight: "https://images.unsplash.com/photo-1509114397022-ed747cca3f65?w=500&auto=format&fit=crop&q=60"
+            };
+            document.getElementById('filePreviewContainer').classList.remove('hidden');
+            document.getElementById('filePreviewImg').src = urls[type];
+            document.getElementById('uploadedFileName').innerText = `sample_${type}.jpg`;
+        }
+
+        function setReportMode(mode) {
+            ['voice', 'media', 'text'].forEach(m => {
+                const btn = document.getElementById(`modeBtn-${m}`);
+                if (m === mode) {
+                    btn.classList.add('border-emerald-600', 'bg-emerald-50', 'text-emerald-900');
+                    btn.classList.remove('border-gray-200', 'bg-white', 'text-gray-700');
+                } else {
+                    btn.classList.remove('border-emerald-600', 'bg-emerald-50', 'text-emerald-900');
+                    btn.classList.add('border-gray-200', 'bg-white', 'text-gray-700');
+                }
+            });
+        }
+
+        // Submit Complaint
+        function submitComplaint() {
+            const desc = document.getElementById('reportDescription').value;
+            if (!desc || desc.trim() === '') {
+                alert("Please describe or speak your problem before submitting.");
+                return;
+            }
+
+            const newId = `GRV-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+            const loc = document.getElementById('locationInput').value || 'Rampur Village Ward 4';
+            const cat = document.getElementById('aiDetectedProblem').innerText || 'General Civic Issue';
+            const image = document.getElementById('filePreviewImg').src || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=500&auto=format&fit=crop&q=60';
+
+            const newComplaint = {
+                id: newId,
+                category: cat,
+                icon: 'fa-triangle-exclamation',
+                problem: desc,
+                location: loc,
+                status: 'Submitted',
+                priority: 'High',
+                date: '18 Sep 2026',
+                lat: 17.3850, lng: 78.4867,
+                image: image,
+                timeline: [
+                    { time: '18 Sep, Just now', title: 'Complaint Registered', desc: `Unique Grievance ID ${newId} Generated` },
+                    { time: '18 Sep, Just now', title: 'AI Analyzed & Routed', desc: 'Forwarded to Gram Panchayat Executive Officer' }
+                ]
+            };
+
+            complaintsData.unshift(newComplaint);
+            
+            // Refresh views
+            renderRecentCards();
+            renderMyComplaints();
+            renderAuthorityTable();
+
+            // Open Tracking page for this complaint
+            document.getElementById('trackSearchInput').value = newId;
+            switchTab('track');
+            performTrackingSearch();
+
+            // Clear report form
+            document.getElementById('reportDescription').value = '';
+            document.getElementById('filePreviewContainer').classList.add('hidden');
+        }
+
+        // Tracking Lookup Function
+        function performTrackingSearch() {
+            const searchId = document.getElementById('trackSearchInput').value.trim().toUpperCase();
+            const item = complaintsData.find(c => c.id.toUpperCase() === searchId) || complaintsData[0];
+
+            activeSelectedComplaintId = item.id;
+            document.getElementById('trackComplaintId').innerText = item.id;
+            document.getElementById('trackCategory').innerText = item.category;
+            document.getElementById('trackLocation').innerHTML = `<i class="fa-solid fa-location-dot text-red-500 mr-1"></i> ${item.location}`;
+            document.getElementById('trackStatusBadge').innerText = item.status;
+            document.getElementById('trackDate').innerText = `Submitted: ${item.date}`;
+
+            // Build Timeline HTML
+            const timelineContainer = document.getElementById('timelineList');
+            timelineContainer.innerHTML = '';
+
+            item.timeline.forEach((step, idx) => {
+                const isLast = idx === item.timeline.length - 1;
+                const dotColor = isLast ? 'bg-emerald-600 ring-4 ring-emerald-100' : 'bg-emerald-500';
+                
+                timelineContainer.innerHTML += `
+                    <div class="relative">
+                        <div class="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full ${dotColor}"></div>
+                        <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                            <span class="text-[10px] font-bold text-emerald-800">${step.time}</span>
+                            <h5 class="text-xs font-bold text-gray-800">${step.title}</h5>
+                            <p class="text-[11px] text-gray-600 mt-0.5">${step.desc}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Show verification if status is resolved
+            if (item.status === 'Resolved') {
+                document.getElementById('citizenVerificationBox').classList.remove('hidden');
+            } else {
+                document.getElementById('citizenVerificationBox').classList.add('hidden');
+            }
+        }
+
+        // Citizen Verification
+        function citizenConfirmResolution(isSatisfied) {
+            if (isSatisfied) {
+                alert("Thank you! Feedback recorded. Grievance officially closed.");
+            } else {
+                alert("Re-opening grievance for Panchayati Officer re-inspection.");
+            }
+            document.getElementById('citizenVerificationBox').classList.add('hidden');
+        }
+
+        // Render Recent Complaints Feed
+        function renderRecentCards(filter = 'all') {
+            const grid = document.getElementById('recentCardsGrid');
+            grid.innerHTML = '';
+
+            const filtered = filter === 'all' ? complaintsData : complaintsData.filter(c => c.category.toLowerCase().includes(filter.toLowerCase()));
+
+            filtered.forEach(c => {
+                const statusColor = c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                                    c.status === 'In Progress' ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-amber-100 text-amber-800 border-amber-300';
+
+                grid.innerHTML += `
+                    <div class="glass-card p-4 rounded-2xl border border-gray-200 space-y-3 flex flex-col justify-between hover:shadow-md transition">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-mono font-bold bg-gray-100 px-2 py-0.5 rounded text-gray-600">${c.id}</span>
+                                <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${statusColor}">${c.status}</span>
+                            </div>
+                            <h4 class="text-xs font-bold text-gray-800 line-clamp-1">${c.problem}</h4>
+                            <p class="text-[11px] text-gray-500"><i class="fa-solid fa-location-dot text-red-500 mr-1"></i> ${c.location}</p>
+                            ${c.image ? `<img src="${c.image}" class="h-28 w-full object-cover rounded-xl border border-gray-200 mt-2">` : ''}
+                        </div>
+                        <button onclick="quickTrack('${c.id}')" class="w-full bg-gray-100 hover:bg-emerald-50 text-emerald-800 text-xs font-bold py-2 rounded-xl border border-gray-200 transition">
+                            Track Issue
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function filterRecent(cat) {
+            renderRecentCards(cat);
+        }
+
+        function quickTrack(id) {
+            document.getElementById('trackSearchInput').value = id;
+            switchTab('track');
+            performTrackingSearch();
+        }
+
+        // Render Profile My Complaints
+        function renderMyComplaints() {
+            const list = document.getElementById('myComplaintsList');
+            list.innerHTML = '';
+
+            complaintsData.forEach(c => {
+                list.innerHTML += `
+                    <div class="bg-white p-3 rounded-2xl border border-gray-200 flex items-center justify-between text-xs">
+                        <div>
+                            <span class="font-bold text-gray-800">${c.id}</span> • <span class="text-gray-600">${c.category}</span>
+                            <p class="text-gray-500 text-[11px] truncate max-w-xs">${c.problem}</p>
+                        </div>
+                        <button onclick="quickTrack('${c.id}')" class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg font-bold hover:bg-emerald-200">
+                            View
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        // Render Officer Dashboard Table
+        function renderAuthorityTable() {
+            const tbody = document.getElementById('authorityTableBody');
+            tbody.innerHTML = '';
+
+            complaintsData.forEach(c => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/50">
+                        <td class="p-3 font-mono text-amber-400 font-bold">${c.id}</td>
+                        <td class="p-3">${c.category}</td>
+                        <td class="p-3 text-slate-400">${c.location}</td>
+                        <td class="p-3"><span class="bg-red-900/60 text-red-300 px-2 py-0.5 rounded text-[10px]">${c.priority}</span></td>
+                        <td class="p-3"><span class="bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded text-[10px]">${c.status}</span></td>
+                        <td class="p-3">
+                            <button onclick="openOfficerModal('${c.id}')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-2.5 py-1 rounded text-[10px]">
+                                Manage
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Officer Edit Modal
+        function openOfficerModal(id) {
+            activeSelectedComplaintId = id;
+            const c = complaintsData.find(item => item.id === id);
+            
+            document.getElementById('officerModalTitle').innerText = `Manage Complaint ${c.id}`;
+            document.getElementById('officerModalContent').innerHTML = `
+                <p><strong>Description:</strong> ${c.problem}</p>
+                <p><strong>Location:</strong> ${c.location}</p>
+                <img src="${c.image}" class="h-32 w-full object-cover rounded-xl border mt-2">
+            `;
+            document.getElementById('officerModal').classList.remove('hidden');
+        }
+
+        function closeOfficerModal() {
+            document.getElementById('officerModal').classList.add('hidden');
+        }
+
+        function saveOfficerUpdate() {
+            const status = document.getElementById('officerStatusSelect').value;
+            const worker = document.getElementById('officerWorkerInput').value;
+            const notes = document.getElementById('officerNotesInput').value;
+
+            const item = complaintsData.find(c => c.id === activeSelectedComplaintId);
+            if (item) {
+                item.status = status;
+                item.timeline.push({
+                    time: '18 Sep, Officer Update',
+                    title: `Status: ${status}`,
+                    desc: `Assigned Worker: ${worker}. Notes: ${notes || 'Inspection completed.'}`
+                });
+            }
+
+            renderAuthorityTable();
+            renderRecentCards();
+            closeOfficerModal();
+            alert(`Complaint ${activeSelectedComplaintId} updated successfully.`);
+        }
+
+        // AI Chatbot Helper Modal Functions
+        function toggleChatWidget() {
+            document.getElementById('chatBoxModal').classList.toggle('hidden');
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInputText');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML += `
+                <div class="bg-amber-500 text-emerald-950 p-2.5 rounded-2xl rounded-tr-none max-w-[85%] ml-auto font-medium">
+                    ${text}
+                </div>
+            `;
+            input.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Call Gemini API for assistant response
+            try {
+                const response = await fetch(geminiApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `You are GramSetu AI rural assistant. Answer concisely in friendly Telugu, Hindi, or English depending on user query: "${text}"` }] }]
+                    })
+                });
+                const data = await response.json();
+                const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || getFallbackChatReply(text);
+                
+                chatMessages.innerHTML += `
+                    <div class="bg-emerald-100 text-emerald-900 p-2.5 rounded-2xl rounded-tl-none max-w-[85%] font-medium">
+                        ${reply}
+                    </div>
+                `;
+            } catch(e) {
+                chatMessages.innerHTML += `
+                    <div class="bg-emerald-100 text-emerald-900 p-2.5 rounded-2xl rounded-tl-none max-w-[85%] font-medium">
+                        ${getFallbackChatReply(text)}
+                    </div>
+                `;
+            }
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function sendQuickChatMessage(txt) {
+            document.getElementById('chatInputText').value = txt;
+            sendChatMessage();
+        }
+
+        function getFallbackChatReply(msg) {
+            if (msg.includes("road") || msg.includes("రోడ్డు")) {
+                return "To report a road problem, click on the 'Report' tab, tap the microphone button and speak about the pothole or broken road. You can also upload a photo.";
+            } else if (msg.includes("Track") || msg.includes("ఎక్కడ")) {
+                return "To track your grievance, click 'Track' in the top menu and enter your Grievance ID like GRV-2026-1042.";
+            }
+            return "GramSetu AI is here to help! You can report any village road, street light, or drainage issue using voice or photos.";
+        }
+
+        // Authentication Simulation
+        function sendOTP() {
+            const mob = document.getElementById('mobileNumberInput').value;
+            if (mob.length !== 10) {
+                alert("Please enter a valid 10-digit mobile number.");
+                return;
+            }
+            document.getElementById('sentMobileSpan').innerText = mob;
+            document.getElementById('otpStep1').classList.add('hidden');
+            document.getElementById('otpStep2').classList.remove('hidden');
+        }
+
+        function verifyOTP() {
+            authenticatedUser.mobile = document.getElementById('mobileNumberInput').value || '9876543210';
+            authenticatedUser.location = document.getElementById('villageLocationInput').value || 'Rampur Village';
+            
+            document.getElementById('userMobileDisplay').innerText = `Mobile: +91 ${authenticatedUser.mobile}`;
+            document.getElementById('userLocationDisplay').innerText = `Location: ${authenticatedUser.location}`;
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function simulateLogout() {
+            document.getElementById('authModal').classList.remove('hidden');
+            document.getElementById('otpStep1').classList.remove('hidden');
+            document.getElementById('otpStep2').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
